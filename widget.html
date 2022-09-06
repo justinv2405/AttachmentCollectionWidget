@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<htmlstyle="font-size: 14px;" lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://live.zwidgets.com/js-sdk/1.1/ZohoEmbededAppSDK.min.js"></script>
+    <script src="https://code.jquery.com/jquery-1.9.1.min.js"></script>
+    <style>
+      table {
+        border: 1px solid #d7e2ed;
+        border-radius: 5px;
+        border-collapse:separate;
+        border-spacing: 12px;
+        padding-left: 25px;
+      }
+      thead {
+        border-bottom: 2px solid #d7e2ed;
+      }
+      a:link {
+        color: #338cf0;
+        background-color: transparent;
+        text-decoration: none;
+      }
+      td {
+      	border-bottom: 1px solid #d7e2ed;
+      }
+      </style>
+    <script type="text/javascript">
+      var initLoad = {};
+      $(document).ready(function(){
+        ZOHO.embeddedApp.on("PageLoad",function(data){
+          var record_ID = data.EntityId;
+          ZOHO.CRM.API.getRecord({Entity:"Deals",RecordID:record_ID})
+          .then(function(data){
+          initLoad.getMessage(record_ID);
+          })
+          ZOHO.CRM.UI.Resize({width:500,height:400});
+      });
+      ZOHO.embeddedApp.init();
+    });
+  </script>
+  </head>
+  <body>
+    <section style="width: 95%; margin: auto; font-family: LatoRegular,sans-serif;">
+      <div>
+        <p><b>Treatment Plans Attachments : </b></p>
+          <table id = "TP" style=" width: 100%; padding-left :5px;">
+            <thead>
+              <tr style="margin: top 10px;">
+                <td style="width: 40%;"><b>File Name</b></td>
+                <td style="width: 25%;"><b>Attached By</b></td>
+                <td style="width: 25%;"><b>Date Added</b></td>
+                <td style="width: 10%;"><b>Size</b></td>
+              </tr>
+            </thead>
+            <tbody id="tbody">
+            </tbody>  
+          </table>
+      </div>
+    </section>
+    <section style="width: 95%; margin: auto; font-family: LatoRegular,sans-serif;">
+      <div>
+        <p><b>Quotes Attachments : </b></p>
+          <table id = "TP" style=" width: 100%; padding-left :5px;">
+            <thead>
+              <tr style="margin: top 10px;">
+                <td style="width: 40%;"><b>File Name</b></td>
+                <td style="width: 25%;"><b>Attached By</b></td>
+                <td style="width: 25%;"><b>Date Added</b></td>
+                <td style="width: 10%;"><b>Size</b></td>
+              </tr>
+            </thead>
+            <tbody id="Quotebody">
+            </tbody>
+          </table>
+      </div>
+    </section>
+    <section style="width: 95%; margin: auto; font-family: LatoRegular,sans-serif;">
+      <div>
+        <p><b>Treatment Managements Attachments : </b></p>
+          <table id = "TP" style=" width: 100%; padding-left :5px;">
+            <thead>
+              <tr style="margin: top 10px;">
+                <td style="width: 40%;"><b>File Name</b></td>
+                <td style="width: 25%;"><b>Attached By</b></td>
+                <td style="width: 25%;"><b>Date Added</b></td>
+                <td style="width: 10%;"><b>Size</b></td>
+              </tr>
+            </thead>
+            <tbody id="TMbody">
+            </tbody>
+          </table>
+      </div>
+    </section>     
+    <script>
+      initLoad.getMessage = function(id){
+      var entity_arr = ["Treatment_Plans","Quotes","Treatment_Managements"];
+      var TP_arr = null;
+      var Quote_arr = new Array;
+      var TM_Array = new Array;
+      for (var i = 0; i < entity_arr.length; i++){
+        ZOHO.CRM.API.getRelatedRecords({Entity:"Deals",RecordID:id,RelatedList:entity_arr[i],page:1,per_page:200})
+        .then(function(data){
+          data.data.forEach(function(value,index,arr){
+            arr[index] = value;
+            if( value.Status == "Client Accepted" || value.Quote_Stage == "Confirmed" || value.Status == "Completed")
+            { 
+              let module = null;
+                if(value.Status == "Client Accepted"){module ="Treatment_Plans" }else if(value.Quote_Stage == "Confirmed"){module = "Quotes"}else if(value.Status == "Completed"){module = "Treatment_Managements"}
+                ZOHO.CRM.API.getRelatedRecords({Entity:module,RecordID:value.id,RelatedList:"Attachments",page:1,per_page:200})
+                .then(function(data){
+                  if(module == "Treatment_Plans"){
+                    fetchData(data.data)
+                  }
+                  else if(module == "Quotes"){
+                    fetchData(data.data);
+                  }else{
+                    fetchData(data.data);
+                  }
+                })
+              }
+            })
+        })
+      }
+    }
+    function fetchData(value){
+      if(value.length > 0 && value != null){
+      value.forEach(function(value,index,arr){
+          let entity_module = arr[index].$se_module;
+          let display = "";
+          let result = Number(arr[index].Size)/1024;
+            display +=' <tr><td style="width: 40%;"><a href= '+'"https://crm.zoho.com'+arr[index].$previewUrl+'"'+'target="_blank" >'+arr[index].File_Name+'</a></td>';
+              display += '<td style="width: 25%;">'+arr[index].Created_By.name+'</td>'; 
+              display += '<td style="width: 25%;">'+arr[index].Created_Time.replace("T"," ").replace("+08:00","")+'</td>';
+              display += '<td style="width: 10%;">'+result.toFixed(2)+'KB'+'</td></tr>';
+          if(entity_module == "Treatment_Plans" ){  
+            document.getElementById("tbody").innerHTML += display;
+          }
+          if(entity_module == "Quotes"){
+             document.getElementById("Quotebody").innerHTML += display;
+          }
+          if(entity_module == "Treatment_Managements"){
+             document.getElementById("TMbody").innerHTML += display;
+          }
+        }) 
+      }
+    }
+    </script>
+  </body>
+</html>
